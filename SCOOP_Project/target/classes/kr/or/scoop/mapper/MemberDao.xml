@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.scoop.dao.MemberDao">
+    <!-- 일반회원가입 -->
+    <insert id="insertMember" parameterType="kr.or.scoop.dto.Member">
+       insert into member(email, pwd, name,idtime,loginnum)
+       values (#{email},#{pwd},#{name},SYSTIMESTAMP,1)
+    </insert>
+	<!-- 회원가입 중복체크 -->
+	<select id="loginCheck" resultType="int">
+		select count(*)
+		from member 
+		where email = #{param1} and pwd = #{param2}
+	</select>
+	<!-- 회원가입 비밀번호 확인 체크 -->
+	<select id="pwdCheck" resultType="kr.or.scoop.dto.Member">
+		select pwd from member where email = #{param1}
+	</select>
+	
+	<!-- public String googleLogin(String email, String name, HttpSession session); -->
+	<!-- 구글 아이디 체크 -->
+	<select id="googleIdCheck" resultType="int">
+		select count(*)
+		from member 
+		where email = #{param1}
+	</select>
+	<!-- 구글 아이디 추가 -->
+	<insert id="googleInsertCheck">
+       insert into member(email,pwd,name,idtime,loginnum)
+       values (#{param1},'google',#{param2},SYSTIMESTAMP,3)
+    </insert>
+    
+    <!-- public String googleLogin(String email, String name, HttpSession session); -->
+    <!-- 네이버 아이디 체크 -->
+	<select id="naverIdCheck" resultType="int">
+		select count(*)
+		from member 
+		where email = #{param1} and name = #{param2}
+	</select>
+	<!-- 네이버 아이디 추가 -->
+	<insert id="naverInsertCheck">
+       insert into member(email,pwd,name,idtime,loginnum)
+       values (#{param1},'naver',#{param2},SYSTIMESTAMP,2)
+    </insert>
+    <!-- 회원가입 아이디 중복체크 -->
+    <select id="idCheck" resultType="int">
+		select count(*)
+		from member 
+		where email = #{param1}
+	</select>
+	<!-- 멤버정보 가져오기 -->
+	<select id="getMember" resultType="kr.or.scoop.dto.Member">
+		select email,name,pwd,dname,drank,address,profile,idtime from member 
+		where email = #{email}
+	</select>
+	<!-- 멤버정보 수정하기 -->
+	<update id="updateMember" parameterType="kr.or.scoop.dto.Member">
+		update member
+		set email = #{email,jdbcType=VARCHAR}, pwd = #{pwd,jdbcType=VARCHAR}, name=#{name,jdbcType=VARCHAR}, dname=#{dname,jdbcType=VARCHAR}, drank=#{drank,jdbcType=INTEGER} , address = #{address,jdbcType=VARCHAR}, profile= #{profile,jdbcType=VARCHAR} where email = #{email,jdbcType=VARCHAR}
+	</update>
+	<resultMap type="kr.or.scoop.dto.Member" id="Member">
+	<result column="email" property="email"/>
+	<result column="pwd" property="pwd"/>
+	<result column="name" property="name"/>
+	<result column="dname" property="dname"/>
+	<result column="drank" property="drank"/>
+	<result column="address" property="address"/>
+	<result column="idtime" property="idtime"/>
+	<result column="loginnum" property="loginnum"/>
+	<result column="prifile" property="prifile"/>
+	<collection property="projectMemberlist" resultMap="ProjectMemberlist"/>
+	</resultMap>
+	<resultMap type="kr.or.scoop.dto.Role" id="Role">
+	<result column="email" property="email"/>
+	<result column="rname" property="rname"/>
+	<collection property="member" resultMap="Member"/>
+	</resultMap>
+	<resultMap type="kr.or.scoop.dto.ProjectMemberlist" id="ProjectMemberlist">
+	<result column="email" property="email"/>
+	<result column="name" property="name"/>
+	<result column="tseq" property="tseq"/>
+	<result column="pjuserrank" property="pjuserrank"/>
+	</resultMap>
+	<select id="getRole" resultType="kr.or.scoop.dto.Role">
+	select m.email , r.RNAME from member m join role r on m.email = r.email where r.email= #{email,jdbcType=VARCHAR}
+	</select>
+	<select id="projectMemberlist" parameterType="kr.or.scoop.dto.ProjectMemberlist" resultMap="ProjectMemberlist">
+	select m.email, m.name, t.tseq , t.pjuserrank from member m join tpmember t on m.email = t.email where t.tseq = #{tseq}
+	</select>
+	
+	<!-- 비밀번호 변경 -->
+	<update id="changePassword" parameterType="kr.or.scoop.dto.Member">
+		update member
+		set pwd = #{pwd,jdbcType=VARCHAR}
+		where email = #{email,jdbcType=VARCHAR}
+	</update>
+	<!-- 회원 등급 수정 -->
+	<update id="updateRole" parameterType="kr.or.scoop.dto.Role">
+		update role set rname = 'ROLE_CHARGE' where email = #{email}
+	</update>
+	<!-- 협업공간 갯수세기 -->
+	<select id="getCount" parameterType="kr.or.scoop.dto.Role" resultType="int">
+    select count(*) from teampjt t join tpmember p on t.tseq=p.tseq and p.email = #{email}
+	</select>
+	<!-- 프로필 사진 불러오기 -->
+	<select id="getProfile" parameterType="kr.or.scoop.dto.Member" resultType="String">
+		select profile from member where email = #{email}
+	</select>
+	<!-- 파일드라이브 불러오기 -->
+	<select id="getFileDrive" resultType="kr.or.scoop.dto.FileDrive">
+		select * from filedrive f join teampjt t on t.tseq=f.tseq where t.tseq in (select tseq from tpmember where email=#{email,jdbcType=VARCHAR}) order by f.fddate desc
+	</select>
+	<!-- 파일드라이브 검색하기 -->
+	<select id="searchFileDrive" resultType="kr.or.scoop.dto.FileDrive">
+		select * from filedrive f join teampjt t on t.tseq=f.tseq where t.tseq in (select tseq from tpmember where email=#{param1}) and f.fdname like '%'||#{param2}||'%' order by f.fddate desc
+	</select>
+	<!-- 파일드라이브 프로젝트별로 불러오기 -->
+	<select id="getFileProject" resultType="kr.or.scoop.dto.FileDrive">
+		select * from filedrive f join teampjt t on f.tseq=t.tseq where f.tseq=#{param1} order by f.fddate desc
+	</select>
+	<!-- 내 파일드라이브 불러오기 -->
+	<select id="getMyFile" resultType="kr.or.scoop.dto.PrivateFileDrive">
+		select * from pfiledrive where email=#{email,jdbcType=VARCHAR} order by pfddate desc
+	</select>
+	<!-- 내 파일드라이브 검색 -->
+	<select id="searchMyFileDrive" resultType="kr.or.scoop.dto.PrivateFileDrive">
+		select * from pfiledrive where email=#{param1} and pfdname like '%'||#{param2}||'%' order by pfddate desc
+	</select>
+	<!-- 협업공간 멤버목록 불러오기 -->
+	<select id="getTpmembers" resultType="kr.or.scoop.dto.Tpmember">
+		select m.name,m.email, t.tseq
+from  member m join tpmember t on m.email=t.email
+where tseq in (
+            select tseq
+            from tpmember
+            where email = #{email}
+)
+	</select>
+	<!-- 멘션목록 불러오기 -->
+	<select id="getMention" resultType="kr.or.scoop.dto.Mention">
+		select * from teammention m join tissue t on m.tiseq = t.tiseq join teampjt p on t.tseq=p.tseq join member b on t.email = b.email where tmemail=#{tmemail} order by t.tidate desc
+	</select>
+	<!-- 내정보 불러오기 -->
+	<select id="getMyInfo" resultType="kr.or.scoop.dto.Tpmember">
+		select * from tpmember where tseq = #{param1} and email = #{param2}
+	</select>
+	<!-- 멤버탈퇴 -->
+	<delete id="deleteMember">
+		delete from member where email = #{email}
+	</delete>
+	<update id="updateAlarmTrue" parameterType="kr.or.scoop.dto.Member">
+		update setting set isalarm=1 where email = #{email}
+	</update>
+	<update id="updateAlarmFalse" parameterType="kr.or.scoop.dto.Member">
+		update setting set isalarm=0 where email = #{email}
+	</update>
+	<select id="getIsAlarm" parameterType="kr.or.scoop.dto.Member" resultType="int">
+		select isalarm from setting where email = #{email}
+	</select>
+</mapper>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.scoop.dao.AlarmDao">
+<resultMap type="kr.or.scoop.dto.Alarm" id="Alarm">
+	<result column="pnaemail" property="pnaemail"/>
+	<result column="pnatitle" property="pnatitle"/>
+	<result column="ispna" property="ispna"/>
+	<result column="pnseq" property="pnseq"/>
+	<result column="raemail" property="raemail"/>
+	<result column="ratitle" property="ratitle"/>
+	<result column="isra" property="isra"/>
+	<result column="replyseq" property="replyseq"/>
+	<result column="tiatitle" property="tiatitle"/>
+	<result column="istia" property="istia"/>
+	<result column="tiaemail" property="tiaemail"/>
+	<result column="tiseq" property="tiseq"/>
+	<result column="vaemail" property="vaemail"/>
+	<result column="vatitle" property="vatitle"/>
+	<result column="isva" property="isva"/>
+	<result column="vseq" property="vseq"/>
+</resultMap>
+	<select id="getAlarm" resultMap="Alarm" parameterType="String">
+		SELECT b.email as raemail, b.ratitle, b.isra, b.replyseq, a.email as pnemail, a.pnatitle,
+		 a.ispna, a.pnseq, c.email as tiaemail,c.tiatitle, c.istia, c.tiseq, d.email as vaemail, 
+		 d.vatitle, d.isva, d.vseq 
+      FROM pnalert a
+      FULL OUTER JOIN replyalert b
+        ON ( a.email != #{email} and b.email != #{email} )
+      FULL OUTER JOIN tialert c
+        ON ( b.email != #{email} and c.email != #{email} )
+      FULL OUTER JOIN votealert d
+        ON ( c.email != #{email} and d.email != #{email} )
+	</select>
+</mapper>

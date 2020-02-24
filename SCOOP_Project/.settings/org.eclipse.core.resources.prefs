@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+encoding//src/main/resources/messages=UTF-8
+encoding//src/main/resources/messages/lang_en.properties=UTF-8
+encoding//src/main/resources/messages/lang_ko.properties=UTF-8
+encoding//src/main/webapp/data.json=UTF-8
+encoding/<project>=UTF-8

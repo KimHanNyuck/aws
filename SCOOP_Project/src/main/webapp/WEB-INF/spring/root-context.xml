@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- Root Context: defines shared resources visible to all other web components -->
+	<!-- 공통 DB작업 -->
+	<bean id="driverManagerDataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName"
+			value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url"
+			value="jdbc:oracle:thin:@scoop.cz9wyi177jfr.ap-northeast-2.rds.amazonaws.com:1521:orcl" />
+		<property name="username" value="SCOOP" />
+		<property name="password" value="whffkaos1" />
+	</bean>
+
+	<!-- Jdbc 템플릿 설정 -->
+	<bean id="" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="driverManagerDataSource"></property>
+	</bean>
+
+	<!-- Mybatis 설정 기본 자바코드 : SqlMapConfig.xml 에서 설정했던 작업 (DB연결 ,mapper 설정) 
+		파일 없어지고 설명파일안에서 > SqlSessionFactoryBean 기존 java 코드 : builder 사용 > Factory 
+		객체 > sqlsession 생성 > 사용 두개의 클래스가 위 작업 처리 SqlSessionFactoryBean SqlSessionTemplate -->
+	<bean id="sqlSessionFactoryBean"
+		class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="driverManagerDataSource"></property>
+		<property name="mapperLocations"
+			value="classpath*:kr/or/scoop/mapper/*xml" />
+	</bean>
+
+	<bean id="sqlSession"
+		class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg index="0" ref="sqlSessionFactoryBean" />
+	</bean>
+
+
+	<!-- 파일 업로드 -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="31457280" />
+	</bean>
+
+	<!-- 시큐리티 암호화 -->
+	<bean id="bCryptPasswordEncoder"
+		class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+		
+	<!-- REST API -->	
+	<bean name="jsonview" class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
+	
+	<!-- Velocity 설정 -->
+	<bean id="velocityConfig"
+		class="org.springframework.web.servlet.view.velocity.VelocityConfigurer">
+		<property name="velocityProperties">
+			<value>
+				input.encoding=UTF-8
+				output.encoding=UTF-8
+			</value>
+		</property>
+	</bean>
+	<bean id="velocityEngine"
+		class="org.springframework.ui.velocity.VelocityEngineFactoryBean">
+		<property name="velocityProperties">
+			<props>
+				<prop key="resource.loader">file</prop>
+				<prop key="class.resource.loader.class">
+					org.apache.velocity.runtime.resource.loader.FileResourceLoader
+				</prop>
+			</props>
+		</property>
+		<property name="resourceLoaderPath"
+			value="/WEB-INF/velocity/" />
+	</bean>
+
+	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+   	 <property name="host" value="smtp.gmail.com" />
+   	 <property name="port" value="587" />
+   	 <property name="username" value="leeyong1321@gmail.com" />
+   	 <property name="password" value="cutuzawmkuihagrc" />
+   	 <property name="javaMailProperties">
+   	 <props>
+   	   <prop key="mail.smtp.auth">true</prop>
+   	   <prop key="mail.smtp.starttls.enable">true</prop>
+   	 </props>
+  	  </property>
+  </bean>
+  
+  	<!-- Locale -->
+	<bean id="localeResolver" class="org.springframework.web.servlet.i18n.SessionLocaleResolver">
+		<property name="defaultLocale" value="ko" />
+	</bean>
+	
+	<!-- Multi Language -->
+	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="defaultEncoding" value="UTF-8" />
+		<property name="basenames">
+			<list>
+				<value>messages.lang</value>
+			</list>
+		</property>
+	</bean>
+</beans>

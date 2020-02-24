@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.scoop.dao.NoticeDao">
+	<!-- 전체공지사항 불러오기 -->
+	<select id="getNotice" resultType="kr.or.scoop.dto.Notice">
+		select bnseq,bntitle,bncontent,bntime,email from notice
+	</select>
+	<!-- 전체공지사항 작성 -->
+	<insert id="insertNotice" parameterType="kr.or.scoop.dto.Notice">
+		insert into notice (bnseq,bntitle,bncontent,bntime,email)
+		 values (bnseq_notice_seq.nextval,#{bntitle},#{bncontent},sysdate,#{email})
+	</insert>
+	<!-- 전체공지사항 디테일 불러오기 -->
+	<select id="detailNotice" resultType="kr.or.scoop.dto.Notice">
+		select bnseq,bntitle,bncontent,bntime from notice where bnseq = #{bnseq}
+	</select>
+	<!-- 전체공지사항 수정 -->
+	<update id="updateNotice" parameterType="int">
+		UPDATE notice 
+		set bntitle=#{bntitle}, 
+			bncontent=#{bncontent}
+		where bnseq=#{bnseq}
+	</update>
+	<!-- 협업공간 이슈 검색 -->
+	<select id="searchTeamIssue" resultType="kr.or.scoop.dto.MyIssue">
+		 select * from tissue t join tpmember p on t.tseq = p.tseq join teampjt m on t.tseq=m.tseq where p.email=#{param1} and (t.tititle like '%'||#{param2}||'%' or t.ticontent like '%'||#{param2}||'%')
+	</select>
+	<!-- 프라이빗공간 이슈 검색 -->
+	<select id="searchMyIssue" resultType="kr.or.scoop.dto.MyIssue">
+		select * from myissue where email=#{param1} and (pititle like '%'||#{param2}||'%' or picontent like '%'||#{param2}||'%')
+	</select>
+	<!-- 전체공지사항 삭제 -->
+	<delete id="deleteNotice">
+		delete notice where bnseq = #{bnseq}
+	</delete>
+</mapper>

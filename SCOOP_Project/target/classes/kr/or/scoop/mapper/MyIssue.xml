@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.scoop.dao.MyIssueDao">
+<!-- 협업공간 이슈 작성 -->
+<insert id="writeTissue" parameterType="kr.or.scoop.dto.MyIssue" >
+insert into tissue (tiseq,tseq,email,tititle,ticontent,isprocess, istbook, issee, tidate, tistart, tiend)
+  values (TISEQ_TISSUE_SEQ.NEXTVAL, #{tseq}, #{email}, #{tititle}, #{ticontent}, 0, 0, 0, sysdate, #{tistart,jdbcType=TIMESTAMP}, #{tiend,jdbcType=TIMESTAMP})
+</insert>
+<!-- 프라이빗공간 이슈 작성 -->
+<insert id="writeMyissue" parameterType="kr.or.scoop.dto.MyIssue" >
+insert into myissue (piseq,pititle,picontent,pistart, piend, ispibook, email, pidate)
+  values (PISEQ_MYISSUE_SEQ.NEXTVAL, #{pititle}, #{picontent}, #{pistart,jdbcType=TIMESTAMP}, #{piend,jdbcType=TIMESTAMP}, 0, #{email,jdbcType=VARCHAR}, sysdate)
+</insert>
+<!-- 프라이빗공간 이슈 목록 불러오기 -->
+<select id="getMyissue" resultType="kr.or.scoop.dto.MyIssue">
+	SELECT * FROM myissue WHERE email = #{email, jdbcType=VARCHAR} order by pidate desc
+</select>
+<!-- 내가 작성한 프라이빗 이슈 리스트 불러오기 -->
+<select id="MyWriteIssueList" resultType="kr.or.scoop.dto.MyIssue">
+select piseq,pititle,pidate from myissue where email = #{email}
+</select>
+<!-- 내가 작성한 협업공간 이슈 리스트 불러오기 -->
+<select id="MyWriteTiisueList" resultType="kr.or.scoop.dto.MyIssue">
+select t.tseq,t.tititle,t.tidate,t.tiseq, t.isprocess,p.pname from tissue t join teampjt p on t.tseq = p.tseq where t.email = #{email} order by t.tidate desc
+</select>
+<!-- 내가 작성한 댓글 불러오기 -->
+<select id="MyWriteReplyList" resultType="kr.or.scoop.dto.Reply">
+select r.replyseq, r.rcontent, r.email, r.rdate, t.tiseq, t.tititle from reply r join tissue t on r.tiseq = t.tiseq where r.email = #{email, jdbcType=VARCHAR} order by r.rdate
+</select>
+<!-- 프라이빗 이슈 디테일 -->
+<select id="myissueDetail" resultType="kr.or.scoop.dto.MyIssue">
+	SELECT * FROM myissue WHERE piseq = #{piseq, jdbcType=INTEGER}
+</select>
+<!-- 북마크 추가 -->
+<insert id="addPBookMark">
+	insert into bookmark(bseq, piseq, email) 
+	values(bseq_bookmark_seq.nextval, #{param1}, #{param2})
+</insert>
+<!-- 북마크 삭제 -->
+<delete id="delPBookMark">
+	delete from bookmark 
+	where piseq=#{param1} and email=#{param2}
+</delete>
+<!-- 북마크 여부 -->
+<select id="getBookMark" resultType="kr.or.scoop.dto.BookMark">
+	select b.bseq, t.tseq, p.piseq, p.pititle, t.tiseq, t.tititle, b.email, n.name as tiname, m.name as piname
+	from bookmark b full outer join myissue p on b.piseq=p.piseq
+               	 	full outer join tissue t on b.tiseq=t.tiseq
+                	full outer join member m on m.email=p.email
+                	full outer join member n on n.email=t.email
+	where b.email = #{email}
+	order by bseq desc
+</select>
+<!-- 새로운 협업공간 이슈 목록 불러오기 -->
+<select id="teamWriteTiisueList" resultType="kr.or.scoop.dto.Tissue">
+select 
+t.tseq,t.tititle,t.tidate,t.tiseq, t.isprocess,p.pname, m.name 
+from tissue t join teampjt p 
+on t.tseq = p.tseq join member m on t.email = m.email
+where p.tseq in (
+            select tseq
+            from tpmember
+            where email = #{param2, jdbcType=VARCHAR}
+) and t.tidate > #{param1, jdbcType=TIMESTAMP} order by t.tidate desc
+</select>
+<!-- 새로운 협업공간 댓글 목록 불러오기 -->
+<select id="teamWriteReplyList" resultType="kr.or.scoop.dto.Reply">
+select r.replyseq, r.rcontent, r.email, m.name ,r.rdate, t.tiseq, t.tititle from reply r join tissue t on r.tiseq = t.tiseq join member m on m.email = r.email where r.rdate > #{param1, jdbcType=TIMESTAMP} order by r.rdate desc
+</select>
+<!-- 새로운 협업공간 공지사항 목록 불러오기 -->
+<select id="teamWriteNoticeList" resultType="kr.or.scoop.dto.PjNotice">
+select p.pnseq, p.pntitle, p.pncontent, p.pntime, p.email, p.tseq, t.pname, t.email as name from pjnotice p join teampjt t on p.tseq = t.tseq where p.email !=#{param1, jdbcType=VARCHAR} and p.pntime > #{param2, jdbcType=TIMESTAMP} order by p.pntime desc
+</select>
+<!-- 협업공간 이름 불러오기 -->
+<select id="getPjtName" resultType="kr.or.scoop.dto.ProjectName">
+	select t.tseq, t.tiseq, p.pname 
+	from tissue t join teampjt p on t.tseq=p.tseq 
+	where t.tseq = #{param1} and t.tiseq = #{param2}
+</select>
+<!-- 캘린더 이슈 작성 -->
+<insert id="writeCalendarTissue" parameterType="kr.or.scoop.dto.Tissue" >
+insert into tissue (tiseq,tseq,email,tititle,ticontent,isprocess, istbook, issee, tidate, allday, tistart, tiend, backgroundcolor, textcolor)
+  values (TISEQ_TISSUE_SEQ.NEXTVAL, #{tseq}, #{email}, #{tititle}, #{ticontent}, 0, 0, 0, SYSTIMESTAMP, #{allDay}, #{tistart}, #{tiend}, #{backgroundColor}, #{textColor})
+</insert>
+<!-- 프라이빗 멘션 불러오기 -->
+<select id="getMyMentions" resultType="kr.or.scoop.dto.Mention">
+	select * from pmention t join member m on t.pemail=m.email where t.piseq=#{piseq}
+</select>
+<!-- 프라이빗 구글드라이브 불러오기 -->
+<select id="getMyGoogleDrive" resultType="kr.or.scoop.dto.GoogleDrive">
+	select * from pgoogledrive where piseq=#{piseq}
+</select>
+<!-- 프라이빗 할일 불러오기 -->
+<select id="getMyDoWork" resultType="kr.or.scoop.dto.DoWork">
+	select (select m.name from pdowork d join member m on d.email=m.email where d.piseq=#{piseq}) fromname, (select m.name from pdowork d join member m on d.ptoemail=m.email where d.piseq=#{piseq}) toname, pdowork, ptoemail, pwseq from pdowork where piseq=#{piseq}
+</select>
+<!-- 프라이빗 파일 불러오기 -->
+<select id="getMyFiles" resultType="kr.or.scoop.dto.FileDrive">
+	select * from pfiledrive where piseq=#{piseq}
+</select>
+<!-- 캘린더 협업공간 이슈 수정 -->
+<update id="editTeamCalendar" parameterType="kr.or.scoop.dto.Tissue">
+UPDATE tissue 
+SET tititle = #{tititle},
+ticontent = #{ticontent},
+tistart = #{tistart},
+tiend = #{tiend},
+backgroundcolor = #{backgroundColor},
+allday = #{allDay} 
+WHERE tiseq=#{tiseq}
+</update>
+<!-- 캘린더 협업공간 이슈 삭제 -->
+<delete id="deleteTeamCalendar" parameterType="kr.or.scoop.dto.Tissue">
+delete from tissue where tiseq = #{tiseq}
+</delete>
+<!-- 협업공간 이슈 수정 -->
+<update id="editTissue" parameterType="kr.or.scoop.dto.MyIssue">
+	update tissue set tititle=#{tititle}, ticontent=#{ticontent}, tistart=#{tistart,jdbcType=TIMESTAMP}, tiend=#{tiend,jdbcType=TIMESTAMP} where tiseq=#{tiseq}
+</update>
+<!-- 프라이빗 이슈 수정 -->
+<update id="editMyissue" parameterType="kr.or.scoop.dto.MyIssue">
+	update myissue set pititle=#{pititle}, picontent=#{picontent}, pistart=#{pistart,jdbcType=TIMESTAMP}, piend=#{piend,jdbcType=TIMESTAMP} where piseq=#{piseq}
+</update>
+<!-- 프라이빗 파일 삭제 -->
+<delete id="pfileDelete">
+	delete pfiledrive where pdseq=#{pdseq}
+</delete>
+<!-- 프라이빗 파일 수정 -->
+<insert id="pfileEdit">
+	insert into pfiledrive(pdseq, piseq, pdcapa, pfdname, email, pfddate)
+  	values(pdseq_pfiledrive_seq.nextval, #{param4}, #{param2}, #{param1}, #{param3, jdbcType=VARCHAR}, sysdate)
+</insert>
+<!-- 프라이빗 멘션 삭제 -->
+<delete id="pmentionDelete">
+	delete pmention where pmseq=#{pmseq}
+</delete>
+<!-- 프라이빗 멘션 수정 -->
+<insert id="pmentionEdit">
+	insert into pmention values(pmseq_pmention_seq.nextval, #{param1}, #{param2})
+</insert>
+<!-- 프라이빗 구글드라이브 삭제 -->
+<delete id="pgoogleDriveDelete">
+	delete pgoogledrive where pgseq=#{pgseq}
+</delete>
+<!-- 프라이빗 구글드라이브 수정 -->
+<insert id="pgoogleDriveEdit">
+	insert into pgoogledrive values(pgseq_pgoogledrive_seq.nextval,#{param1}, #{param2},#{param3})
+</insert>
+<!-- 프라이빗 할일 삭제 -->
+<delete id="pdoWorkDelete">
+	delete pdowork where pwseq= #{pwseq}
+</delete>
+<!-- 프라이빗 할일 수정 -->
+<insert id="pdoWorkEdit">
+	insert into pdowork values(pwseq_pdowork_seq.nextval, #{param4}, #{param1}, #{param2}, #{param3})
+</insert>
+<!-- 프라이빗 파일 삭제 -->
+<delete id="myIssueFileDelete">
+	delete pfiledrive where piseq= #{piseq}
+</delete>
+<!-- 프라이빗 멘션 삭제 -->
+<delete id="myIssueMentionDelete">
+	delete pmention where piseq= #{piseq}
+</delete>
+<!-- 프라이빗 구글드라이브 삭제 -->
+<delete id="myIssueGoogleDriveDelete">
+	delete pgoogledrive where piseq= #{piseq}
+</delete>
+<!-- 프라이빗 할일 삭제 -->
+<delete id="myIssueDoWorkDelete">
+	delete pdowork where piseq= #{piseq}
+</delete>
+<!-- 프라이빗 이슈 삭제 -->
+<delete id="myIssueDelete">
+	delete myissue where piseq= #{piseq}
+</delete>
+<!-- 프라이빗 캘린더 작성 -->
+<insert id="writeMyCalendar" parameterType="kr.or.scoop.dto.MyIssue" >
+insert into myissue (piseq,pititle,picontent,pistart, piend, ispibook, email, pidate, backgroundcolor, textcolor, allday)
+  values (PISEQ_MYISSUE_SEQ.NEXTVAL, #{pititle}, #{picontent}, #{pistart,jdbcType=TIMESTAMP}, #{piend,jdbcType=TIMESTAMP}, 0, #{email,jdbcType=VARCHAR}, sysdate, #{backgroundColor}, #{textColor}, #{allDay})
+</insert>
+<!-- 프라이빗 캘린더 수정 -->
+<update id="editMyCalendar" parameterType="kr.or.scoop.dto.MyIssue">
+	update myissue 
+	set pititle=#{pititle},
+	 picontent=#{picontent},
+	  pistart=#{pistart,jdbcType=TIMESTAMP},
+	   piend=#{piend,jdbcType=TIMESTAMP}
+	    where piseq=#{piseq}
+</update>
+<select id="teamWriteDoworkList" resultType="kr.or.scoop.dto.DoWork">
+	select * from teamdowork d join tissue t on d.tiseq = t.tiseq join teampjt p on t.tseq=p.tseq join member m on d.email = m.email where d.toemail=#{email} order by t.tidate desc
+</select>
+<!-- 마이 링크 추가 -->
+<insert id="myLinkInsert">
+	insert into mylink(mylinkseq, plink, email, plinkdate) 
+	values(mylinkseq_mylink_seq.nextval, #{param1}, #{param2}, sysdate)
+</insert>
+<!-- 마이 링크 리스트 -->
+<select id="getMyLink" resultType="kr.or.scoop.dto.Link">
+	select mylinkseq, plink from mylink where email=#{email}
+</select>
+</mapper>

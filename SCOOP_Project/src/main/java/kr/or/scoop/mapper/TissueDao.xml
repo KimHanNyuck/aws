@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.scoop.dao.TissueDao">
+
+<resultMap type="kr.or.scoop.dto.Member" id="Member">
+	<result column="tseq" property="tseq"/>
+	<result column="email" property="email"/>
+	<result column="name" property="name"/>
+	<result column="pname" property="pname"/>
+	<result column="pcontent" property="pcontent"/>
+	<result column="ptime" property="ptime"/>
+	<result column="istpalarm" property="istpalarm"/>
+	<result column="ischarge" property="ischarge"/>
+	<collection property="tissue" resultMap="Tissue"/>
+	<collection property="tpmember" resultMap="Tpmember"/>
+	<collection property="reply" resultMap="Reply"/>
+</resultMap>
+<resultMap type="kr.or.scoop.dto.Tissue" id="Tissue">
+	<result column="tiseq" property="tiseq"/>
+	<result column="tseq" property="tseq"/>
+	<result column="email" property="email"/>
+	<result column="tititle" property="tititle"/>
+	<result column="ticontent" property="ticontent"/>
+	<result column="tistart" property="tistart"/>
+	<result column="tiend" property="tiend"/>
+	<result column="isprocess" property="isprocess"/>
+	<result column="isbook" property="isbook"/>
+	<result column="issee" property="issee"/>
+	<result column="tidate" property="tidate"/>
+	<result column="tgfilename" property="tgfilename"/>
+	<result column="turl" property="turl"/>
+</resultMap>
+<resultMap type="kr.or.scoop.dto.Reply" id="Reply">
+	<result column="replyseq" property="replyseq"/>
+	<result column="rcontent" property="rcontent"/>
+	<result column="email" property="email"/>
+	<result column="rdate" property="rdate"/>
+	<result column="tiseq" property="tiseq"/>
+</resultMap>
+<!-- 칸반에 협업공간 이슈 불러오기 -->
+<select id="loadKanban" parameterType="int" resultMap="Tissue">
+	select *
+	from tissue
+	where tseq = #{tseq}
+</select>
+<!-- 협업공간 이슈 디테일 -->
+<select id="teamissueDetail" resultType="kr.or.scoop.dto.Tissue">
+	select * from tissue t join teampjt p on t.tseq=p.tseq join member m on t.email=m.email where t.tiseq=#{tiseq}
+</select>
+<!-- 협업공간 팀장 위임 -->
+<update id="teamSetting">
+	update tpmember set pjuserrank=#{param1} where tseq=#{param2} and email=#{param3}
+</update>
+<!-- 칸반 수정 -->
+<update id="kanbanEdit">
+	UPDATE tissue 
+	SET isprocess=#{param3}
+	WHERE tiseq = #{param2} and tseq = #{param1}
+</update>
+<!-- 협업공간 탈퇴 -->
+<delete id="banMember">
+	delete from tpmember where tseq=#{param1} and email=#{param2}
+</delete>
+<!-- 팀장위임 -->
+<update id="changeMember">
+	update teampjt set email = #{param2} where tseq=#{param1}
+</update>
+<!-- 팀장 위임 -->
+<update id="changeMemberTp">
+	update tpmember set pjuserrank = 100 where email= #{param2} and tseq=#{param1}
+</update>
+<!-- 일반멤버로 강등 -->
+<update id="changeMemberTp2">
+	update tpmember set pjuserrank = 300 where email= #{param2} and tseq=#{param1}
+</update>
+<!-- 협업공간 삭제하기 -->
+<delete id="dropProject">
+	delete from teampjt where tseq=#{param1}
+</delete>
+<!-- 북마크 추가 -->
+<insert id="addTBookMark">
+	insert into bookmark(bseq, tiseq, email) 
+	values(bseq_bookmark_seq.nextval, #{param1}, #{param2})
+</insert>
+<!-- 북마크 삭제 -->
+<delete id="delTBookMark">
+	delete from bookmark 
+	where tiseq=#{param1} and email=#{param2}
+</delete>
+<!-- 협업공간 이슈 댓글 추가 -->
+<insert id="teamComment">
+	insert into reply(replyseq, rcontent, email, rdate, tiseq)
+  	values(replyseq_reply_seq.nextval, #{param2}, #{param3}, sysdate, #{param1})
+</insert>
+<!-- 협업공간 이슈 댓글 비동기 불러오기 -->
+<select id="teamCommentOk" resultType="kr.or.scoop.dto.Reply">
+	select * from reply r join member m on r.email=m.email where tiseq = #{tiseq}
+</select>
+<!-- 협업공간 이슈 파일 추가 -->
+<insert id="fileInsert">
+	insert into filedrive(fdseq, tiseq, fdcapa, fdname, email, fddate, tseq)
+  	values(fdseq_filedrive_seq.nextval, (select Max(tiseq) from tissue), #{param3}, #{param2}, #{param4, jdbcType=VARCHAR}, sysdate, #{param1, jdbcType=INTEGER})
+</insert>
+<!-- 협업공간 이슈 파일 수정 -->
+<insert id="fileEdit">
+	insert into filedrive(fdseq, tiseq, fdcapa, fdname, email, fddate, tseq)
+  	values(fdseq_filedrive_seq.nextval, #{param5}, #{param3}, #{param2}, #{param4, jdbcType=VARCHAR}, sysdate, #{param1, jdbcType=INTEGER})
+</insert>
+<!-- 프라이빗공간 이슈 파일 추가 -->
+<insert id="myFileInsert">
+	insert into pfiledrive(pdseq, pdcapa, pfdname, pfddate, email, piseq)
+  	values(pdseq_pfiledrive_seq.nextval, #{param2}, #{param1}, sysdate, #{param3, jdbcType=VARCHAR}, (select Max(piseq) from myissue))
+</insert>
+<!-- 협업공간 이슈 멘션 추가 -->
+<insert id="mentionInsert">
+	insert into teammention values((select Max(tiseq) from tissue),tmseq_teammention_seq.nextval, #{email, jdbcType=VARCHAR})
+</insert>
+<!-- 협업공간 이슈 멘션 수정 -->
+<insert id="mentionEdit">
+	insert into teammention values(#{param2},tmseq_teammention_seq.nextval, #{param1})
+</insert>
+<!-- 프라이빗공간 이슈 멘션 추가 -->
+<insert id="myMentionInsert">
+	insert into pmention values(pmseq_pmention_seq.nextval, #{email, jdbcType=VARCHAR}, (select Max(piseq) from myissue))
+</insert>
+<!-- 협업공간 파일함 불러오기 -->
+<select id="getFiles" resultType="kr.or.scoop.dto.FileDrive">
+	select * from FileDrive where tiseq=#{tiseq}
+</select>
+<!-- 협업공간 멘션 불러오기 -->
+<select id="getMentions" resultType="kr.or.scoop.dto.Mention">
+	select * from teammention t join member m on t.tmemail=m.email where t.tiseq=#{tiseq}
+</select>
+<!-- 협업공간 구글드라이브 불러오기 -->
+<select id="getGoogleDrive" resultType="kr.or.scoop.dto.GoogleDrive">
+	select * from teamgoogledrive where tiseq=#{tiseq}
+</select>
+<!-- 협업공간 할일 불러오기 -->
+<select id="getDoWork" resultType="kr.or.scoop.dto.DoWork">
+	select m.name fromname, m2.name toname, d.dowork, d.toemail, d.tdseq from teamdowork d join member m on d.email=m.email join member m2 on d.toemail=m2.email where d.tiseq=#{tiseq}
+</select>
+<!-- 차트 불러오기 -->
+<select id="chartData" resultType="kr.or.scoop.dto.Process">
+	select distinct (select count(*) from tissue where tseq = #{tseq} and isprocess=0) as initiative, 
+                	(select count(*) from tissue where tseq = #{tseq} and isprocess=1) as progress, 
+                	(select count(*) from tissue where tseq = #{tseq} and isprocess=2) as pause, 
+                	(select count(*) from tissue where tseq = #{tseq} and isprocess=3) as complete 
+	from tissue 
+</select>
+<!-- 협업공간 구글드라이브 추가 -->
+<insert id="googleDriveInsert">
+	insert into teamgoogledrive values(tgseq_teamgoogledrive_seq.nextval,#{param1}, #{param2},(select Max(tiseq) from tissue))
+</insert>
+<!-- 협업공간 구글드라이브 수정 -->
+<insert id="googleDriveEdit">
+	insert into teamgoogledrive values(tgseq_teamgoogledrive_seq.nextval,#{param1}, #{param2},#{param3})
+</insert>
+<!-- 프라이빗공간 구글드라이브 추가 -->
+<insert id="myGoogleDriveInsert">
+	insert into pgoogledrive values(pgseq_pgoogledrive_seq.nextval,#{param1}, #{param2},(select Max(piseq) from myissue))
+</insert>
+<!-- 협업공간 할일 추가 -->
+<insert id="doWorkInsert">
+	insert into teamdowork values(tdseq_teamdowork_seq.nextval, (select Max(tiseq) from tissue), #{param1}, #{param2}, #{param3})
+</insert>
+<!-- 협업공간 할일 수정 -->
+<insert id="doWorkEdit">
+	insert into teamdowork values(tdseq_teamdowork_seq.nextval, #{param4}, #{param1}, #{param2}, #{param3})
+</insert>
+<!-- 프라이빗공간 할일 추가 -->
+<insert id="myDoWorkInsert">
+	insert into pdowork values(pwseq_pdowork_seq.nextval, (select Max(piseq) from myissue), #{param1}, #{param2}, #{param3})
+</insert>
+<!-- 협업공간 파일 삭제 -->
+<delete id="fileDelete">
+	delete filedrive where fdseq= #{fdseq}
+</delete>
+<!-- 협업공간 멘션 삭제 -->
+<delete id="mentionDelete">
+	delete teammention where tmseq= #{tmseq}
+</delete>
+<!-- 협업공간 구글드라이브 삭제 -->
+<delete id="googleDriveDelete">
+	delete teamgoogledrive where tgseq= #{tgseq}
+</delete>
+<!-- 협업공간 할일 삭제 -->
+<delete id="doWorkDelete">
+	delete teamdowork where tdseq= #{tdseq}
+</delete>
+<!-- 협업공간 이슈 불러오기 -->
+<select id="getTissueList" parameterType="int" resultMap="Tissue">
+select m.name, t.tititle, t.tiseq, t.tseq, t.email, t.tititle, t.ticontent, t.tistart, t.tiend, t.isprocess, t.istbook, t.issee, t.tidate, t.turl, t.backgroundcolor, t.textcolor, t.allday
+from tissue t join member m
+on m.email = t.email
+where tseq = #{tseq}
+</select>
+<!-- 협업공간 파일 삭제 -->
+<delete id="teamIssueFileDelete">
+	delete filedrive where tiseq= #{tiseq}
+</delete>
+<!-- 협업공간 멘션 삭제 -->
+<delete id="teamIssueMentionDelete">
+	delete teammention where tiseq= #{tiseq}
+</delete>
+<!-- 협업공간 구글드라이브 삭제 -->
+<delete id="teamIssueGoogleDriveDelete">
+	delete teamgoogledrive where tiseq= #{tiseq}
+</delete>
+<!-- 협업공간 할일 삭제 -->
+<delete id="teamIssueDoWorkDelete">
+	delete teamdowork where tiseq= #{tiseq}
+</delete>
+<!-- 협업공간 이슈 삭제 -->
+<delete id="teamIssueDelete">
+	delete tissue where tiseq= #{tiseq}
+</delete>
+<!-- 협업공간 댓글 삭제 -->
+<delete id="delComment">
+	delete reply where replyseq=#{replyseq}
+</delete>
+<!-- 협업공간 이슈 수정할때 원래있던 파일 사이즈 측정 -->
+<select id="getOriFilesize" resultType="Long">
+	select fdcapa from filedrive where tiseq=#{tiseq}
+</select>
+<!-- 프라이빗공간 이슈 수정할때 원래있던 파일 사이즈 측정 -->
+<select id="getMyOriFilesize" resultType="Long">
+	select pdcapa from pfiledrive where piseq=#{piseq}
+</select>
+<!-- 팀 링크 추가 -->
+<insert id="teamLinkInsert">
+	insert into tlink(tlinkseq, tseq, tlink, email, tlinkdate)
+	values (TLINKSEQ_TLINK_SEQ.nextval, #{param1}, #{param2}, #{param3}, sysdate)
+</insert>
+<select id="getTLink" resultType="kr.or.scoop.dto.Link">
+	select tlinkseq, tseq, tlink from tlink where tseq=#{param1}
+</select>
+<select id="getMaxTiseq" resultType="Integer">
+	select max(tiseq) from tissue
+</select>
+<select id="getMaxMyTiseq" resultType="Integer">
+	select max(piseq) from myissue
+</select>
+</mapper>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.scoop.dao.ProjectDao">
+<!-- 협업공간 생성 -->
+<insert id="insertPJT" parameterType="kr.or.scoop.dto.TeamPjt" >
+ insert into Teampjt (tseq,email,pname,pcontent,ptime,istpalarm,ischarge)
+  values (tseq_teampjt_seq.nextval,#{email},#{pname},#{pcontent},sysdate,#{istpalarm},#{ischarge})
+</insert>
+<!-- 협업공간 멤버 초대 성공 -->
+<insert id="insertPJT2">
+ insert into tpmember (email,tseq,pjuserrank,tpaddtime)
+  values (#{param1},#{param2},300,systimestamp)
+</insert>
+<resultMap type="kr.or.scoop.dto.Tissue" id="Tissue">
+	<result column="tiseq" property="tiseq"/>
+	<result column="tseq" property="tseq"/>
+	<result column="email" property="email"/>
+	<result column="tititle" property="tititle"/>
+	<result column="ticontent" property="ticontent"/>
+	<result column="tistart" property="tistart"/>
+	<result column="tiend" property="tiend"/>
+	<result column="isprocess" property="isprocess"/>
+	<result column="tfilename" property="tfilename"/>
+	<result column="tfilesize" property="tfilesize"/>
+	<result column="istbook" property="istbook"/>
+	<result column="issee" property="issee"/>
+	<result column="tidate" property="tidate"/>
+	<result column="tgfilename" property="tgfilename"/>
+	<result column="tmention" property="tmention"/>
+	<result column="turl" property="turl"/>
+</resultMap>
+<resultMap type="kr.or.scoop.dto.TeamPjt" id="TeamPjt">
+	<result column="tseq" property="tseq"/>
+	<result column="email" property="email"/>
+	<result column="pname" property="pname"/>
+	<result column="pcontent" property="pcontent"/>
+	<result column="ptime" property="ptime"/>
+	<result column="istpalarm" property="istpalarm"/>
+	<result column="ischarge" property="ischarge"/>
+	<collection property="tissue" resultMap="Tissue"/>
+	<collection property="tpmember" resultMap="Tpmember"/>
+</resultMap>
+<resultMap type="kr.or.scoop.dto.Tpmember" id="Tpmember">
+	<result column="tseq" property="tseq"/>
+	<result column="email" property="email"/>
+	<result column="pjuserrank" property="pjuserrank"/>
+	<result column="pname" property="pname"/>
+</resultMap>
+<!-- 협업공간 정보 불러오기 -->
+<select id="detailPJT" parameterType="int" resultType="kr.or.scoop.dto.TeamPjt">
+	SELECT TSEQ,PNAME,PCONTENT FROM TEAMPJT WHERE TSEQ = #{TSEQ}
+</select>
+<!-- 협업공간 멤버 목록 불러오기 -->
+<select id="getPJT" parameterType="kr.or.scoop.dto.Tpmember" resultMap="Tpmember">
+		select m.email, m.TSEQ, t.pname, m.tpaddtime from tpmember m join teampjt t on m.tseq = t.tseq where m.email = #{email}
+</select>
+<!-- 협업공간 이슈 불러오기 -->
+<select id="getTissue" parameterType="kr.or.scoop.dto.Tissue" resultMap="Tissue">
+	SELECT T.TSEQ , M.NAME, S.TISEQ, S.tititle, S.TICONTENT, S.TIDATE, S.ISTBOOK ,s.isprocess
+	FROM TEAMPJT T JOIN TISSUE S ON T.TSEQ = S.TSEQ 
+				   JOIN MEMBER M ON M.EMAIL = S.EMAIL 
+	WHERE T.TSEQ = #{TSEQ} ORDER BY S.TIDATE DESC
+</select>
+<!-- 협업공간 팀장 위임 -->
+<update id="admin_setting" parameterType="kr.or.scoop.dto.Tpmember">
+		update tpmember 
+		set pjuserrank=#{pjuserrank,jdbcType=INTEGER} 
+		where tseq=#{tseq,jdbcType=INTEGER} and email=#{email,jdbcType=VARCHAR}
+</update>
+<!-- 협업공간 정보 수정 -->
+<update id="updatePjt" parameterType="kr.or.scoop.dto.TeamPjt">
+	update Teampjt set pname = #{pname} , pcontent = #{pcontent} where tseq = #{tseq}
+</update>
+<!-- 멤버 등급 불러오기 -->
+<select id="searchRank" parameterType="kr.or.scoop.dto.Tpmember" resultType="int">
+	select m.pjuserrank, m.tseq, m.email
+	from tpmember m join teampjt p 
+                	on m.tseq = p.tseq 
+	where p.tseq=#{param1} and m.email = #{param2}
+</select>
+<!-- 프로젝트 공지사항 불러오기 -->
+<select id="getPjNotice" resultType="kr.or.scoop.dto.PjNotice">
+select p.pnseq,p.pntitle,p.pncontent,m.name,p.tseq,p.pntime,p.email from pjnotice p join member m on p.email = m.email join teampjt t on p.tseq = t.tseq where t.tseq = #{tseq} order by p.pntime desc
+</select>
+<!-- 프로젝트 공지사항 작성하기 -->
+<insert id="pjNoticeWrite" parameterType="kr.or.scoop.dto.PjNotice">
+	insert into pjnotice(pnseq,pntitle,pncontent,tseq,pntime,email) values (pnseq_pjnotice_seq.nextval,#{pntitle},#{pncontent},#{tseq},systimestamp,#{email})
+</insert>
+<!-- 프로젝트 공지사항 디테일 불러오기 -->
+<select id="pjNoticeDetail" resultType="kr.or.scoop.dto.PjNotice" parameterType="String">
+	select p.tseq,p.pnseq,p.pntitle,p.pncontent,p.pntime,m.name from pjnotice p join member m on p.email=m.email where pnseq = #{pnseq}
+</select>
+<!-- 프로젝트 공지사항 수정하기 -->
+<update id="updatePjNotice" parameterType="kr.or.scoop.dto.PjNotice">
+	update pjnotice set pntitle = #{pntitle} , pncontent = #{pncontent} where pnseq = #{pnseq}
+</update>
+<!-- 프로젝트 공지사항 삭제하기 -->
+<delete id="deletePjNotice">
+	delete from pjnotice where pnseq = #{pnseq}
+</delete>
+<!-- 프로젝트 멤버 불러오기 -->
+<select id="getTpMember" resultType="kr.or.scoop.dto.Tpmember">
+	select m.name,m.email, t.tseq
+from  member m join tpmember t on m.email=t.email
+where tseq in (
+            select tseq
+            from tpmember
+            where email = #{param1}
+)
+</select>
+<!-- 협업공간 멤버 등급 불러오기 -->
+<select id="searchNoticeRank" parameterType="kr.or.scoop.dto.Tpmember" resultType="int">
+	select m.pjuserrank, m.tseq, m.email, n.pnseq
+	from tpmember m join teampjt p 
+                	on m.tseq = p.tseq join pjnotice n on n.tseq = m.tseq
+	where m.email = #{param2} and n.pnseq = #{param1} and p.tseq= #{param3} 
+	</select>
+<!-- 협업공간 갯수 세기 -->
+<select id="getCountProject" resultType="int">
+	select count(*) from tpmember where email = #{email}
+</select>
+<!-- 멤버 권한 불러오기 -->
+<select id="getUserRole" resultType="kr.or.scoop.dto.Role">
+	select * from role where email = #{email}
+</select>
+</mapper>
